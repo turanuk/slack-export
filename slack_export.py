@@ -273,11 +273,35 @@ def doTestAuth():
 # Since Slacker does not Cache.. populate some reused lists
 def bootstrapKeyValues():
     global users, channels, groups, dms
-    users = slack.users.list().body['members']
+    usersRequest = slack.users.list()
+    users = usersRequest.body['members']
+    nextCursor = usersRequest.body['response_metadata']['next_cursor']
+    while (nextCursor):
+        usersNextRequest = slack.users.get('users.list', params={'cursor': nextCursor})
+        nextPageOfUsers = usersNextRequest.body['members']
+        users = users + nextPageOfUsers
+        nextCursor = usersNextRequest.body['response_metadata']['next_cursor']
+        sleep(1)
     print("Found {0} Users".format(len(users)))
     sleep(1)
     
-    channels = slack.conversations.list(limit = 1000, types=('public_channel')).body['channels']
+    channelsRequest = slack.conversations.list(limit = 1000, types=('public_channel'))
+    channels = channelsRequest.body['channels']
+    nextCursor = channelsRequest.body['response_metadata']['next_cursor']
+    while (nextCursor):
+        channelsNextRequest = slack.conversations.get(
+            'conversations.list',
+            params={
+                'cursor': nextCursor,
+                'exclude_archived': False,
+                'types': ('public_channel'),
+                'limit': 1000
+            }
+        )
+        nextPageOfChannels = channelsNextRequest.body['channels']
+        channels = channels + nextPageOfChannels
+        nextCursor = channelsNextRequest.body['response_metadata']['next_cursor']
+        sleep(1)
     print("Found {0} Public Channels".format(len(channels)))
     sleep(1)
 
